@@ -1,0 +1,22 @@
+# https://taskfile.dev
+
+version: '3'
+
+silent: true
+
+
+tasks:
+  default: task -l
+
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf ./build
+
+
+  test1:
+    desc: Tests the obj cmd
+    cmds:
+      - go build .
+      - time ./craftc obj -cc cc -cfile ./libsrc/libsrc1.c -objdir ./build/obj -cflags -O2
