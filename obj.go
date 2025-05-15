@@ -154,7 +154,7 @@ func runObj(ctx context.Context, cc, cfile, objdir, cflags string) error {
 		return err
 	}
 	if upTodate {
-		fmt.Fprintf(os.Stderr, "%s is up to date.\n", objFile)
+		// fmt.Fprintf(os.Stderr, "%s is up to date.\n", objFile)
 		return nil
 	}
 
@@ -167,7 +167,7 @@ func runObj(ctx context.Context, cc, cfile, objdir, cflags string) error {
 	os.Remove(depFile)
 	os.Remove(cmdFile)
 
-	fmt.Println(cmd.String())
+	// fmt.Println(cmd.String())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {

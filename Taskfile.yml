@@ -9,6 +9,32 @@ tasks:
   default: task -l
 
 
+  gen-src:*:
+    desc: Generate test source code.
+    vars:
+      SRC_COUNT: "{{index .MATCH 0}}"
+    cmds:
+      - mkdir -p ./libgensrc
+      - rm -f ./libgensrc/*
+      - |
+        {{- range $i := splitList " " (seq 1 (.SRC_COUNT | atoi)) }}
+        echo -n '
+        #include <stdio.h>
+
+        void testlibfunc{{$i}}()
+        {
+            printf("testlibfunc{{$i}} called!\n");
+        }
+        ' > ./libgensrc/libsrc{{$i}}.c
+        {{- end }}
+      - |
+        echo -n '
+        {{- range $i := splitList " " (seq 1 (.SRC_COUNT | atoi)) }}
+        void testlibfunc{{$i}}();
+        {{- end }}
+        ' > ./libgensrc/lib.h
+
+
   clean:
     desc: Clean build artifacts
     cmds:
@@ -23,8 +49,24 @@ tasks:
 
 
   test2:
-    desc: Tests the obj cmd
+    desc: Tests the objs cmd with a few source files
     cmds:
       - go build .
       - time ./craftc objs -cc cc -cfiles "./libsrc/libsrc1.c ./libsrc/libsrc2.c" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2"
+  
+
+  test3:
+    desc: Tests the objs cmd with many generated source files
+    vars:
+      SRC:
+        sh: ls ./libgensrc/*.c
+    cmds:
+      - go build .
+      - time ./craftc objs -cc cc -cfiles "{{.SRC}}" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2"
+  
+
+  test-make:
+    desc: Test build with a makefile
+    cmds:
+      - time make -j $(nproc) -s
 
