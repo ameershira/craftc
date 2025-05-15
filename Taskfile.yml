@@ -19,4 +19,12 @@ tasks:
     desc: Tests the obj cmd
     cmds:
       - go build .
-      - time ./craftc obj -cc cc -cfile ./libsrc/libsrc1.c -objdir ./build/obj -cflags -O2
+      - time ./craftc obj -cc cc -cfile ./libsrc/libsrc1.c -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2"
+
+
+  test2:
+    desc: Tests the obj cmd
+    cmds:
+      - go build .
+      - time ./craftc objs -cc cc -cfiles "./libsrc/libsrc1.c ./libsrc/libsrc2.c" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2"
+
