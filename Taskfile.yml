@@ -52,7 +52,7 @@ tasks:
     desc: Tests the objs cmd with a few source files
     cmds:
       - go build .
-      - time ./craftc objs -cc cc -cfiles "./libsrc/libsrc1.c ./libsrc/libsrc2.c" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2"
+      - time ./craftc objs -cc cc -cfiles "./libsrc/libsrc1.c ./libsrc/libsrc2.c" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2"  {{.CLI_ARGS}}
   
 
   test3:
@@ -62,7 +62,7 @@ tasks:
         sh: ls ./libgensrc/*.c
     cmds:
       - go build .
-      - time ./craftc objs -cc cc -cfiles "{{.SRC}}" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2"
+      - time ./craftc objs -cc cc -cfiles "{{.SRC}}" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" {{.CLI_ARGS}}
   
 
   test-make:

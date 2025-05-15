@@ -51,7 +51,7 @@ func parseDepFile(depFile string) ([]string, error) {
 	return strings.Fields(content[colonIndex+1:]), nil
 }
 
-func depsAreUpToDate(ctx context.Context, deps []string, objModTime time.Time) (bool, error) {
+func depsAreUpToDate(ctx context.Context, objFile string, deps []string, objModTime time.Time) (bool, error) {
 	if len(deps) == 0 {
 		return true, nil
 	}
@@ -74,7 +74,7 @@ func depsAreUpToDate(ctx context.Context, deps []string, objModTime time.Time) (
 		g.Go(func() error {
 			defer sem.Release(1)
 
-			// Short-circuit inside goroutine as well
+			// Short-circuit inside goroutine
 			if triggered.Load() {
 				return nil
 			}
@@ -85,6 +85,7 @@ func depsAreUpToDate(ctx context.Context, deps []string, objModTime time.Time) (
 			}
 
 			if info.ModTime().After(objModTime) {
+				vprintf("[rebuild] %s: dep %s is newer than object.\n", objFile, dep)
 				triggered.Store(true)
 			}
 
@@ -109,6 +110,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	objStat, err := os.Stat(objFile)
 	if err != nil {
 		if os.IsNotExist(err) {
+			vprintf("[build] %s: object file does not exist.\n", objFile)
 			return false, nil
 		}
 		return false, err
@@ -117,6 +119,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	// Check if dep file exists
 	if _, err := os.Stat(depFile); err != nil {
 		if os.IsNotExist(err) {
+			vprintf("[build] %s: dep file %s does not exist.\n", objFile, depFile)
 			return false, nil
 		}
 		return false, err
@@ -125,6 +128,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	// Check if cmd file exists
 	if _, err := os.Stat(cmdFile); err != nil {
 		if os.IsNotExist(err) {
+			vprintf("[build] %s: cmd file %s does not exist.\n", objFile, cmdFile)
 			return false, nil
 		}
 		return false, err
@@ -132,7 +136,11 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 
 	// if source file is newer than the obj file
 	srcStat, err := os.Stat(fileName)
-	if err != nil || srcStat.ModTime().After(objStat.ModTime()) {
+	if err != nil {
+		return false, err
+	}
+	if srcStat.ModTime().After(objStat.ModTime()) {
+		vprintf("[rebuild] %s: source file %s is newer than object.\n", objFile, fileName)
 		return false, nil
 	}
 
@@ -142,6 +150,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 		return false, err
 	}
 	if string(cmdData) != cmd {
+		vprintf("[rebuild] %s: compile command changed:\n", objFile)
 		return false, nil
 	}
 
@@ -152,7 +161,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	}
 
 	// Concurrently check dep files mod time
-	upToDate, err := depsAreUpToDate(ctx, depFiles, objStat.ModTime())
+	upToDate, err := depsAreUpToDate(ctx, objFile, depFiles, objStat.ModTime())
 	if err != nil {
 		return false, err
 	}
@@ -160,7 +169,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	return upToDate, nil
 }
 
-func runObj(ctx context.Context, cc, cfile, objdir, cflags string) error {
+func runObj(ctx context.Context, cc, cfile, objdir, cflags string, forceBuild bool) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err() // early exit
@@ -186,14 +195,17 @@ func runObj(ctx context.Context, cc, cfile, objdir, cflags string) error {
 	args := append(cflagList, "-MMD", "-MF", depFile, "-c", cfile, "-o", objFile)
 	cmd := exec.CommandContext(ctx, cc, args...)
 
-	// check if we should compile
-	upTodate, err := objIsUpToDate(ctx, cfile, objFile, depFile, cmdFile, cmd.String())
-	if err != nil {
-		return err
-	}
-	if upTodate {
-		// fmt.Fprintf(os.Stderr, "%s is up to date.\n", objFile)
-		return nil
+	if !forceBuild {
+		// check if we should compile
+		upTodate, err := objIsUpToDate(ctx, cfile, objFile, depFile, cmdFile, cmd.String())
+		if err != nil {
+			return err
+		}
+		if upTodate {
+			// fmt.Fprintf(os.Stderr, "%s is up to date.\n", objFile)
+			vprintf("✅ %s is up to date.\n", objFile)
+			return nil
+		}
 	}
 
 	// Create the directory if it does not exist
@@ -208,6 +220,8 @@ func runObj(ctx context.Context, cc, cfile, objdir, cflags string) error {
 	// fmt.Println(cmd.String())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	vprintf("[compile] %s\n", cmd.String())
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("compilation failed for %s: %w", cfile, err)
 	}

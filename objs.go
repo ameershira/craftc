@@ -11,7 +11,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-func runObjs(ctx context.Context, cc, cfiles, objdir, cflags string) error {
+func runObjs(ctx context.Context, cc, cfiles, objdir, cflags string, forceBuild bool) error {
 	if cc == "" || cfiles == "" || objdir == "" {
 		return fmt.Errorf("cc, cfiles, and objdir are required")
 	}
@@ -38,7 +38,7 @@ func runObjs(ctx context.Context, cc, cfiles, objdir, cflags string) error {
 		g.Go(func() error {
 			defer sem.Release(1)
 
-			if err := runObj(ctx, cc, file, objdir, cflags); err != nil {
+			if err := runObj(ctx, cc, file, objdir, cflags, forceBuild); err != nil {
 				cancel() // trigger early cancelation
 				return err
 			}
