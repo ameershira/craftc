@@ -6,7 +6,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync/atomic"
+	"time"
+
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 func encodeFilePath(filePath string) string {
@@ -20,26 +26,6 @@ func encodeFilePath(filePath string) string {
 	}
 	return encodedPath
 }
-
-// func parseDepFile(depFile string) ([]string, error) {
-// 	data, err := os.ReadFile(depFile)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	lines := strings.Split(string(data), "\n")
-// 	joined := ""
-// 	for _, line := range lines {
-// 		joined += strings.TrimRight(line, "\\ \t") + " "
-// 	}
-
-// 	parts := strings.SplitN(joined, ":", 2)
-// 	if len(parts) != 2 {
-// 		return nil, fmt.Errorf("invalid depfile format")
-// 	}
-
-// 	return strings.Fields(parts[1]), nil
-// }
 
 func parseDepFile(depFile string) ([]string, error) {
 	data, err := os.ReadFile(depFile)
@@ -65,28 +51,82 @@ func parseDepFile(depFile string) ([]string, error) {
 	return strings.Fields(content[colonIndex+1:]), nil
 }
 
-func objIsUpToDate(fileName, objFile, depFile, cmdFile, cmd string) (bool, error) {
-	// if the obj file does not exist
+func depsAreUpToDate(ctx context.Context, deps []string, objModTime time.Time) (bool, error) {
+	if len(deps) == 0 {
+		return true, nil
+	}
+
+	var triggered atomic.Bool
+	sem := semaphore.NewWeighted(int64(runtime.NumCPU() * 4)) // this can possibly be higher
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	for _, dep := range deps {
+		// Skip if rebuild already triggered
+		if triggered.Load() {
+			break
+		}
+
+		if err := sem.Acquire(ctx, 1); err != nil {
+			return false, err
+		}
+
+		g.Go(func() error {
+			defer sem.Release(1)
+
+			// Short-circuit inside goroutine as well
+			if triggered.Load() {
+				return nil
+			}
+
+			info, err := os.Stat(dep)
+			if err != nil {
+				return fmt.Errorf("failed to stat %s: %w", dep, err)
+			}
+
+			if info.ModTime().After(objModTime) {
+				triggered.Store(true)
+			}
+
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return false, err
+	}
+
+	if triggered.Load() {
+		return false, nil // Rebuild needed
+	}
+
+	return true, nil // all is up to date, no rebuild
+}
+
+func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd string) (bool, error) {
+
+	// Check if object file exists
 	objStat, err := os.Stat(objFile)
-	if os.IsNotExist(err) {
-		return false, nil
-	} else if err != nil {
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
 		return false, err
 	}
 
-	// if the dep file does not exist
-	_, err = os.Stat(depFile)
-	if os.IsNotExist(err) {
-		return false, nil
-	} else if err != nil {
+	// Check if dep file exists
+	if _, err := os.Stat(depFile); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
 		return false, err
 	}
 
-	// if the cmd file does not exist
-	_, err = os.Stat(cmdFile)
-	if os.IsNotExist(err) {
-		return false, nil
-	} else if err != nil {
+	// Check if cmd file exists
+	if _, err := os.Stat(cmdFile); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
 		return false, err
 	}
 
@@ -111,14 +151,13 @@ func objIsUpToDate(fileName, objFile, depFile, cmdFile, cmd string) (bool, error
 		return false, fmt.Errorf("failed to parse dep file: %w", err)
 	}
 
-	for _, dep := range depFiles {
-		depStat, err := os.Stat(dep)
-		if err != nil || depStat.ModTime().After(objStat.ModTime()) {
-			return false, nil
-		}
+	// Concurrently check dep files mod time
+	upToDate, err := depsAreUpToDate(ctx, depFiles, objStat.ModTime())
+	if err != nil {
+		return false, err
 	}
 
-	return true, nil
+	return upToDate, nil
 }
 
 func runObj(ctx context.Context, cc, cfile, objdir, cflags string) error {
@@ -145,11 +184,10 @@ func runObj(ctx context.Context, cc, cfile, objdir, cflags string) error {
 
 	// Build full command args
 	args := append(cflagList, "-MMD", "-MF", depFile, "-c", cfile, "-o", objFile)
-	// cmd := exec.Command(cc, args...)
 	cmd := exec.CommandContext(ctx, cc, args...)
 
 	// check if we should compile
-	upTodate, err := objIsUpToDate(cfile, objFile, depFile, cmdFile, cmd.String())
+	upTodate, err := objIsUpToDate(ctx, cfile, objFile, depFile, cmdFile, cmd.String())
 	if err != nil {
 		return err
 	}

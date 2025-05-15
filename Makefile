@@ -2,7 +2,7 @@
 
 # Compiler and flags
 CC := cc
-CFLAGS := -MMD -MP
+CFLAGS := -MMD -MP -Wall
 
 # Directory paths
 SRC_DIR := ./libgensrc

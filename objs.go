@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"craftc/semaphore"
+	//"craftc/semaphore"
 	"fmt"
 	"runtime"
 	"strings"
 
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 func runObjs(ctx context.Context, cc, cfiles, objdir, cflags string) error {
@@ -25,17 +26,17 @@ func runObjs(ctx context.Context, cc, cfiles, objdir, cflags string) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// limit the cpu bound tasks to number of logical cpus
-	sem := semaphore.New(runtime.NumCPU()) // lightweight semaphore
+	sem := semaphore.NewWeighted(int64(runtime.NumCPU()))
 
 	for _, file := range files {
 		// Acquire before spawning goroutine
-		if err := sem.Acquire(ctx); err != nil {
+		if err := sem.Acquire(ctx, 1); err != nil {
 			cancel()
 			return err
 		}
 
 		g.Go(func() error {
-			defer sem.Release()
+			defer sem.Release(1)
 
 			if err := runObj(ctx, cc, file, objdir, cflags); err != nil {
 				cancel() // trigger early cancelation
