@@ -45,15 +45,15 @@ tasks:
     desc: Tests the obj cmd
     cmds:
       - go build .
-      - time ./craftc obj -cc cc -cfile ./libsrc/libsrc1.c -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2"
+      - time ./craftc obj -cc cc -cfile ./libsrc/libsrc1.c -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" {{.CLI_ARGS}}
 
 
   test2:
     desc: Tests the objs cmd with a few source files
     cmds:
       - go build .
-      - time ./craftc objs -cc cc -cfiles "./libsrc/libsrc1.c ./libsrc/libsrc2.c" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2"  {{.CLI_ARGS}}
-  
+      - time ./craftc objs -cc cc -cfiles "./libsrc/libsrc1.c ./libsrc/libsrc2.c" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" {{.CLI_ARGS}}
+
 
   test3:
     desc: Tests the objs cmd with many generated source files
@@ -65,8 +65,45 @@ tasks:
       - time ./craftc objs -cc cc -cfiles "{{.SRC}}" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" {{.CLI_ARGS}}
   
 
-  test-make:
+  test3-make:
     desc: Test build with a makefile
     cmds:
       - time make -j $(nproc) -s
 
+
+  test4:
+    desc: Tests the static-lib cmd with a few source files
+    vars:
+      BUILD_DIR: ./build/{{.TASK}}
+      OBJ_DIR: '{{.BUILD_DIR}}/obj'
+      SRC: ./libsrc/libsrc1.c ./libsrc/libsrc2.c
+      STATIC_LIB: '{{.BUILD_DIR}}/{{.TASK}}.a'
+      CFLAGS: -Wall -O2
+    cmds:
+      - go build .
+      - time ./craftc static-lib -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -libpath "{{.STATIC_LIB}}" {{.CLI_ARGS}}
+
+
+  test5:
+    desc: Tests the static-lib cmd with many generated source files
+    vars:
+      BUILD_DIR: ./build/{{.TASK}}
+      OBJ_DIR: '{{.BUILD_DIR}}/obj'
+      SRC:
+        sh: ls ./libgensrc/*.c
+      STATIC_LIB: '{{.BUILD_DIR}}/{{.TASK}}.a'
+      CFLAGS: -Wall -O2
+    cmds:
+      - go build .
+      - time ./craftc static-lib -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -libpath "{{.STATIC_LIB}}" {{.CLI_ARGS}}
+  
+
+  all:
+    desc: Run all tests.
+    cmds:
+      - task: test1
+      - task: test2
+      - task: test3
+      - task: test3-make
+      - task: test4
+      - task: test5

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 )
 
 func encodeFilePath(filePath string) string {
@@ -57,9 +56,9 @@ func depsAreUpToDate(ctx context.Context, objFile string, deps []string, objModT
 	}
 
 	var triggered atomic.Bool
-	sem := semaphore.NewWeighted(int64(runtime.NumCPU() * 4)) // this can possibly be higher
 
 	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(runtime.NumCPU() * 4) // this can possibly be higher
 
 	for _, dep := range deps {
 		// Skip if rebuild already triggered
@@ -67,13 +66,7 @@ func depsAreUpToDate(ctx context.Context, objFile string, deps []string, objModT
 			break
 		}
 
-		if err := sem.Acquire(ctx, 1); err != nil {
-			return false, err
-		}
-
 		g.Go(func() error {
-			defer sem.Release(1)
-
 			// Short-circuit inside goroutine
 			if triggered.Load() {
 				return nil
@@ -85,7 +78,7 @@ func depsAreUpToDate(ctx context.Context, objFile string, deps []string, objModT
 			}
 
 			if info.ModTime().After(objModTime) {
-				vprintf("[rebuild] %s: dep %s is newer than object.\n", objFile, dep)
+				vprintf("[rebuild] 🧠 %s: dep %s is newer than object.\n", objFile, dep)
 				triggered.Store(true)
 			}
 
@@ -110,7 +103,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	objStat, err := os.Stat(objFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			vprintf("[build] %s: object file does not exist.\n", objFile)
+			vprintf("[build] 🧠 %s: object file does not exist.\n", objFile)
 			return false, nil
 		}
 		return false, err
@@ -119,7 +112,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	// Check if dep file exists
 	if _, err := os.Stat(depFile); err != nil {
 		if os.IsNotExist(err) {
-			vprintf("[build] %s: dep file %s does not exist.\n", objFile, depFile)
+			vprintf("[build] 🧠 %s: dep file %s does not exist.\n", objFile, depFile)
 			return false, nil
 		}
 		return false, err
@@ -128,7 +121,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	// Check if cmd file exists
 	if _, err := os.Stat(cmdFile); err != nil {
 		if os.IsNotExist(err) {
-			vprintf("[build] %s: cmd file %s does not exist.\n", objFile, cmdFile)
+			vprintf("[build] 🧠 %s: cmd file %s does not exist.\n", objFile, cmdFile)
 			return false, nil
 		}
 		return false, err
@@ -140,7 +133,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 		return false, err
 	}
 	if srcStat.ModTime().After(objStat.ModTime()) {
-		vprintf("[rebuild] %s: source file %s is newer than object.\n", objFile, fileName)
+		vprintf("[rebuild] 🧠 %s: source file %s is newer than object.\n", objFile, fileName)
 		return false, nil
 	}
 
@@ -150,7 +143,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 		return false, err
 	}
 	if string(cmdData) != cmd {
-		vprintf("[rebuild] %s: compile command changed:\n", objFile)
+		vprintf("[rebuild] 🧠 %s: compile command changed:\n", objFile)
 		return false, nil
 	}
 
@@ -169,15 +162,15 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	return upToDate, nil
 }
 
-func runObj(ctx context.Context, cc, cfile, objdir, cflags string, forceBuild bool) error {
+func runObj(ctx context.Context, cc, cfile, objdir, cflags string, forceBuild bool) (bool, error) {
 	select {
 	case <-ctx.Done():
-		return ctx.Err() // early exit
+		return false, ctx.Err() // early exit
 	default:
 	}
 
 	if cc == "" || cfile == "" || objdir == "" {
-		return fmt.Errorf("cc, cfile, and objdir are required")
+		return false, fmt.Errorf("cc, cfile, and objdir are required")
 	}
 
 	fileName := encodeFilePath(cfile)
@@ -199,38 +192,37 @@ func runObj(ctx context.Context, cc, cfile, objdir, cflags string, forceBuild bo
 		// check if we should compile
 		upTodate, err := objIsUpToDate(ctx, cfile, objFile, depFile, cmdFile, cmd.String())
 		if err != nil {
-			return err
+			return false, err
 		}
 		if upTodate {
 			// fmt.Fprintf(os.Stderr, "%s is up to date.\n", objFile)
 			vprintf("✅ %s is up to date.\n", objFile)
-			return nil
+			return false, nil
 		}
 	}
 
 	// Create the directory if it does not exist
 	if err := os.MkdirAll(objdir, os.ModePerm); err != nil {
-		return err
+		return false, err
 	}
 
 	// Clean old files
 	os.Remove(depFile)
 	os.Remove(cmdFile)
 
-	// fmt.Println(cmd.String())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	vprintf("[compile] %s\n", cmd.String())
+	vprintf("[compile] 🔨 %s\n", cmd.String())
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("compilation failed for %s: %w", cfile, err)
+		return false, fmt.Errorf("compilation failed for %s: %w", cfile, err)
 	}
 
 	// The `.cmd` file stores the exact compile command line used.
 	// If the compile command changes, the object file is rebuilt.
 	if err := os.WriteFile(cmdFile, []byte(cmd.String()), 0644); err != nil {
-		return fmt.Errorf("failed to write cmd file: %w", err)
+		return true, fmt.Errorf("failed to write cmd file: %w", err)
 	}
 
-	return nil
+	return true, nil
 }

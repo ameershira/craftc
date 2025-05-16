@@ -1,1 +1,1 @@
-#define LUCKY_NUMBER 14
+#define LUCKY_NUMBER 13

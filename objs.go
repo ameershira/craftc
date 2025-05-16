@@ -2,49 +2,50 @@ package main
 
 import (
 	"context"
+	"sync/atomic"
+
 	//"craftc/semaphore"
 	"fmt"
 	"runtime"
 	"strings"
 
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 )
 
-func runObjs(ctx context.Context, cc, cfiles, objdir, cflags string, forceBuild bool) error {
+func runObjs(ctx context.Context, cc, cfiles, objdir, cflags string, forceBuild bool) (bool, error) {
 	if cc == "" || cfiles == "" || objdir == "" {
-		return fmt.Errorf("cc, cfiles, and objdir are required")
+		return false, fmt.Errorf("cc, cfiles, and objdir are required")
 	}
 
 	files := strings.Fields(cfiles)
 	if len(files) == 0 {
-		return fmt.Errorf("no source files specified")
+		return false, fmt.Errorf("no source files specified")
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	var anyObjsBuilt atomic.Bool // tracks if any object was built
+
 	g, ctx := errgroup.WithContext(ctx)
+	// limit the cpu bound goroutines to the number of logical cpus
+	g.SetLimit(runtime.NumCPU())
 
-	// limit the cpu bound tasks to number of logical cpus
-	sem := semaphore.NewWeighted(int64(runtime.NumCPU()))
-
+	// kickoff a goroutine per source file
 	for _, file := range files {
-		// Acquire before spawning goroutine
-		if err := sem.Acquire(ctx, 1); err != nil {
-			cancel()
-			return err
-		}
-
 		g.Go(func() error {
-			defer sem.Release(1)
-
-			if err := runObj(ctx, cc, file, objdir, cflags, forceBuild); err != nil {
-				cancel() // trigger early cancelation
+			builtObj, err := runObj(ctx, cc, file, objdir, cflags, forceBuild)
+			if err != nil {
 				return err
+			}
+			if builtObj {
+				anyObjsBuilt.Store(true)
 			}
 			return nil
 		})
 	}
 
-	return g.Wait()
+	if err := g.Wait(); err != nil {
+		return false, err
+	}
+
+	// returns true if at least one obj was built
+	return anyObjsBuilt.Load(), nil
 }
