@@ -81,7 +81,7 @@ tasks:
       CFLAGS: -Wall -O2
     cmds:
       - go build .
-      - time ./craftc static-lib -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -libpath "{{.STATIC_LIB}}" {{.CLI_ARGS}}
+      - ./craftc static-lib -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -lib-path "{{.STATIC_LIB}}" {{.CLI_ARGS}}
 
 
   test5:
@@ -95,7 +95,23 @@ tasks:
       CFLAGS: -Wall -O2
     cmds:
       - go build .
-      - time ./craftc static-lib -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -libpath "{{.STATIC_LIB}}" {{.CLI_ARGS}}
+      - time ./craftc static-lib -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -lib-path "{{.STATIC_LIB}}" {{.CLI_ARGS}}
+  
+
+  test6:
+    desc: Tests the app cmd with a few source files
+    vars:
+      BUILD_DIR: ./build/{{.TASK}}
+      OBJ_DIR: '{{.BUILD_DIR}}/obj'
+      SRC: ./app-src/main.c
+      STATIC_LIB: ./build/test4/test4.a
+      CFLAGS: -Wall -O2 -I ./libsrc
+      APP_PATH: '{{.BUILD_DIR}}/{{.TASK}}-app'
+    deps:
+      - task: test4
+    cmds:
+      - ./craftc app -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -app-path {{.APP_PATH}} -lib-paths "{{.STATIC_LIB}}" {{.CLI_ARGS}}
+      - '{{.APP_PATH}}'
   
 
   all:

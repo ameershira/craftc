@@ -33,7 +33,6 @@ func parseDepFile(depFile string) ([]string, error) {
 	}
 
 	var builder strings.Builder
-	// lines := strings.Split(string(data), "\n")
 	lines := strings.SplitSeq(string(data), "\n")
 	for line := range lines {
 		trimmed := strings.TrimRight(line, "\\ \t")

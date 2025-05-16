@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"sync/atomic"
-
-	//"craftc/semaphore"
 	"fmt"
 	"runtime"
 	"strings"
+	"sync/atomic"
 
 	"golang.org/x/sync/errgroup"
 )
