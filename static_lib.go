@@ -30,6 +30,11 @@ func runStaticLib(ctx context.Context, cc, cfiles, objdir, cflags, libPath strin
 		return err
 	}
 
+	// Create the libpath directory if it does not exist
+	if err := os.MkdirAll(filepath.Dir(libPath), os.ModePerm); err != nil {
+		return err
+	}
+
 	if !forceBuild && !objsWasbuilt {
 		upToDate, err := staticLibUpToDate(libPath)
 		if err != nil {
@@ -53,7 +58,6 @@ func runStaticLib(ctx context.Context, cc, cfiles, objdir, cflags, libPath strin
 	}
 
 	args := append([]string{"rcs", libPath}, objs...)
-
 	cmd := exec.CommandContext(ctx, "ar", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

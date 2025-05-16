@@ -58,6 +58,7 @@ func depsAreUpToDate(ctx context.Context, objFile string, deps []string, objModT
 	var triggered atomic.Bool
 
 	g, ctx := errgroup.WithContext(ctx)
+	// limit the io-bound goroutines
 	g.SetLimit(runtime.NumCPU() * 4) // this can possibly be higher
 
 	for _, dep := range deps {
@@ -195,7 +196,6 @@ func runObj(ctx context.Context, cc, cfile, objdir, cflags string, forceBuild bo
 			return false, err
 		}
 		if upTodate {
-			// fmt.Fprintf(os.Stderr, "%s is up to date.\n", objFile)
 			vprintf("✅ %s is up to date.\n", objFile)
 			return false, nil
 		}
