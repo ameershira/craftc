@@ -106,11 +106,12 @@ tasks:
       SRC: ./app-src/main.c
       STATIC_LIB: ./build/test4/test4.a
       CFLAGS: -Wall -O2 -I ./libsrc
+      # LDFLAGS: -Wl,--trace
       APP_PATH: '{{.BUILD_DIR}}/{{.TASK}}-app'
     deps:
       - task: test4
     cmds:
-      - ./craftc app -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -app-path {{.APP_PATH}} -lib-paths "{{.STATIC_LIB}}" {{.CLI_ARGS}}
+      - ./craftc app -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -ldflags "{{.LDFLAGS}}" -app-path {{.APP_PATH}} -lib-paths "{{.STATIC_LIB}}" {{.CLI_ARGS}}
       - '{{.APP_PATH}}'
   
 
@@ -123,3 +124,4 @@ tasks:
       - task: test3-make
       - task: test4
       - task: test5
+      - task: test6

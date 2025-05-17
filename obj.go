@@ -143,7 +143,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 		return false, err
 	}
 	if string(cmdData) != cmd {
-		vprintf("[rebuild] 🧠 %s: compile command changed:\n", objFile)
+		vprintf("[rebuild] 🧠 %s: compile command changed.\n", objFile)
 		return false, nil
 	}
 

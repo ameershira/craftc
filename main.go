@@ -97,7 +97,7 @@ func main() {
 		}
 		setVerbose(*verboseCmdApp)
 		vprintf("⚙️  Running cmd: %s...\n", os.Args[1])
-		err := runApp(ctx, *ccCmdApp, *cfilesCmdApp, *objDirCmdApp, *cflagsCmdApp, *ldflagsCmdApp, *appPathCmdApp, *libPathsCmdApp, *forceBuildCmdStaticLib)
+		err := runApp(ctx, *ccCmdApp, *cfilesCmdApp, *objDirCmdApp, *cflagsCmdApp, *ldflagsCmdApp, *appPathCmdApp, *libPathsCmdApp, *forceBuildCmdApp)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "❌ %s: cmd `%s` failed: %v\n", os.Args[0], os.Args[1], err)
 			os.Exit(1)

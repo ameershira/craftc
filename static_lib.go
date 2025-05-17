@@ -42,7 +42,7 @@ func runStaticLib(ctx context.Context, cc, cfiles, objdir, cflags, libPath strin
 			return err
 		}
 		if upToDate {
-			vprintf("✅ %s is up to date.\n", libPath)
+			vprintf("✅ 📦 %s is up to date.\n", libPath)
 			return nil
 		}
 	}

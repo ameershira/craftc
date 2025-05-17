@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include "lib.h"
 
 void testlibfunc1()
 {
