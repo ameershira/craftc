@@ -61,7 +61,7 @@ func main() {
 	case "obj":
 		cmdObj.Parse(os.Args[2:])
 		setVerbose(*verboseCmdObj)
-		vprintf("⚙️  Running cmd: %s...\n", os.Args[1])
+		vprintf("⚙️  Running cmd %s: %s\n", os.Args[1], *cfileCmdObj)
 		_, err := runObj(ctx, *ccCmdObj, *cfileCmdObj, *objDirCmdObj, *cflagsCmdObj, *forceBuildCmdObj)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "❌ %s: cmd `%s` failed: %v\n", os.Args[0], os.Args[1], err)
@@ -70,7 +70,7 @@ func main() {
 	case "objs":
 		cmdObjs.Parse(os.Args[2:])
 		setVerbose(*verboseCmdObjs)
-		vprintf("⚙️  Running cmd: %s...\n", os.Args[1])
+		vprintf("⚙️  Running cmd %s\n", os.Args[1])
 		_, err := runObjs(ctx, *ccCmdObjs, *cfilesCmdObjs, *objDirCmdObjs, *cflagsCmdObjs, *forceBuildCmdObjs)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "❌ %s: cmd `%s` failed: %v\n", os.Args[0], os.Args[1], err)
@@ -83,7 +83,7 @@ func main() {
 			os.Exit(1)
 		}
 		setVerbose(*verboseCmdStaticLib)
-		vprintf("⚙️  Running cmd: %s...\n", os.Args[1])
+		vprintf("⚙️  Running cmd %s: %s\n", os.Args[1], *libPathCmdStaticLib)
 		err := runStaticLib(ctx, *ccCmdStaticLib, *cfilesCmdStaticLib, *objDirCmdStaticLib, *cflagsCmdStaticLib, *libPathCmdStaticLib, *forceBuildCmdStaticLib)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "❌ %s: cmd `%s` failed: %v\n", os.Args[0], os.Args[1], err)
@@ -96,7 +96,7 @@ func main() {
 			os.Exit(1)
 		}
 		setVerbose(*verboseCmdApp)
-		vprintf("⚙️  Running cmd: %s...\n", os.Args[1])
+		vprintf("⚙️  Running cmd %s: %s\n", os.Args[1], *appPathCmdApp)
 		err := runApp(ctx, *ccCmdApp, *cfilesCmdApp, *objDirCmdApp, *cflagsCmdApp, *ldflagsCmdApp, *appPathCmdApp, *libPathsCmdApp, *forceBuildCmdApp)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "❌ %s: cmd `%s` failed: %v\n", os.Args[0], os.Args[1], err)

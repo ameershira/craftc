@@ -29,6 +29,7 @@ tasks:
         {{- end }}
       - |
         echo -n '
+        #define LUCKY_NUMBER 13
         {{- range $i := splitList " " (seq 1 (.SRC_COUNT | atoi)) }}
         void testlibfunc{{$i}}();
         {{- end }}
@@ -114,6 +115,23 @@ tasks:
       - ./craftc app -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -ldflags "{{.LDFLAGS}}" -app-path {{.APP_PATH}} -lib-paths "{{.STATIC_LIB}}" {{.CLI_ARGS}}
       - '{{.APP_PATH}}'
   
+
+  test7:
+    desc: Tests the app cmd with a few source files
+    vars:
+      BUILD_DIR: ./build/{{.TASK}}
+      OBJ_DIR: '{{.BUILD_DIR}}/obj'
+      SRC: ./app-src/main.c
+      STATIC_LIB: ./build/test5/test5.a
+      CFLAGS: -Wall -O2 -I ./libgensrc
+      # LDFLAGS: -Wl,--trace
+      APP_PATH: '{{.BUILD_DIR}}/{{.TASK}}-app'
+    deps:
+      - task: test5
+    cmds:
+      - ./craftc app -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -ldflags "{{.LDFLAGS}}" -app-path {{.APP_PATH}} -lib-paths "{{.STATIC_LIB}}" {{.CLI_ARGS}}
+      - '{{.APP_PATH}}'
+
 
   all:
     desc: Run all tests.
