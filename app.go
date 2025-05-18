@@ -90,16 +90,12 @@ func runApp(ctx context.Context, cc, cfiles, objdir, cflags, ldflags, appPath, l
 		return err
 	}
 
-	objs, err := filepath.Glob(objdir + "/*.o")
+	// generate the obj list to use when linking.
+	// this allows for accurate selection of obj files and
+	// wont add stale objs.
+	objs, err := getObjFiles(objdir, cfiles)
 	if err != nil {
-		os.Remove(appPath)
-		os.Remove(linkCmdFile)
 		return err
-	}
-	if len(objs) == 0 {
-		os.Remove(appPath)
-		os.Remove(linkCmdFile)
-		return fmt.Errorf("no object files found in %s.", objdir)
 	}
 
 	var args []string

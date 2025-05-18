@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 func staticLibUpToDate(libPath string) (bool, error) {
@@ -20,6 +21,19 @@ func staticLibUpToDate(libPath string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func getObjFiles(objdir, cfiles string) ([]string, error) {
+	files := strings.Fields(cfiles)
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no source files specified")
+	}
+	objs := make([]string, len(files))
+	for i, file := range files {
+		fileName := encodeFilePath(file)
+		objs[i] = filepath.Join(objdir, fileName+".o")
+	}
+	return objs, nil
 }
 
 func runStaticLib(ctx context.Context, cc, cfiles, objdir, cflags, libPath string, forceBuild bool) error {
@@ -49,12 +63,12 @@ func runStaticLib(ctx context.Context, cc, cfiles, objdir, cflags, libPath strin
 
 	os.Remove(libPath)
 
-	objs, err := filepath.Glob(objdir + "/*.o")
+	// generate the obj list to use when linking.
+	// this allows for accurate selection of obj files and
+	// wont add stale objs.
+	objs, err := getObjFiles(objdir, cfiles)
 	if err != nil {
 		return err
-	}
-	if len(objs) == 0 {
-		return fmt.Errorf("no object files found in %s.", objdir)
 	}
 
 	args := append([]string{"rcs", libPath}, objs...)

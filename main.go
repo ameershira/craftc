@@ -14,8 +14,8 @@ var (
 	cfileCmdObj      = cmdObj.String("cfile", "", "C source file")
 	objDirCmdObj     = cmdObj.String("objdir", "", "Output object directory")
 	cflagsCmdObj     = cmdObj.String("cflags", "", "Additional compiler flags")
-	forceBuildCmdObj = cmdObj.Bool("f", false, "force a complete build")
-	verboseCmdObj    = cmdObj.Bool("v", false, "verbose output")
+	forceBuildCmdObj = cmdObj.Bool("f", false, "Force a complete build")
+	verboseCmdObj    = cmdObj.Bool("v", false, "Verbose output")
 
 	// objs cmd flags
 	cmdObjs           = flag.NewFlagSet("objs", flag.ExitOnError)
@@ -23,8 +23,8 @@ var (
 	cfilesCmdObjs     = cmdObjs.String("cfiles", "", "Space-separated list of C source files")
 	objDirCmdObjs     = cmdObjs.String("objdir", "", "Output object directory")
 	cflagsCmdObjs     = cmdObjs.String("cflags", "", "Additional compiler flags")
-	forceBuildCmdObjs = cmdObjs.Bool("f", false, "force a complete build")
-	verboseCmdObjs    = cmdObjs.Bool("v", false, "verbose output")
+	forceBuildCmdObjs = cmdObjs.Bool("f", false, "Force a complete build")
+	verboseCmdObjs    = cmdObjs.Bool("v", false, "Verbose output")
 
 	// static-lib cmd flags
 	cmdStaticLib           = flag.NewFlagSet("static-lib", flag.ExitOnError)
@@ -33,8 +33,8 @@ var (
 	cfilesCmdStaticLib     = cmdStaticLib.String("cfiles", "", "Space-separated list of C source files")
 	objDirCmdStaticLib     = cmdStaticLib.String("objdir", "", "Output object directory")
 	cflagsCmdStaticLib     = cmdStaticLib.String("cflags", "", "Additional compiler flags")
-	forceBuildCmdStaticLib = cmdStaticLib.Bool("f", false, "force a complete build")
-	verboseCmdStaticLib    = cmdStaticLib.Bool("v", false, "verbose output")
+	forceBuildCmdStaticLib = cmdStaticLib.Bool("f", false, "Force a complete build")
+	verboseCmdStaticLib    = cmdStaticLib.Bool("v", false, "Verbose output")
 
 	// static-lib cmd flags
 	cmdApp           = flag.NewFlagSet("app", flag.ExitOnError)
@@ -45,8 +45,8 @@ var (
 	objDirCmdApp     = cmdApp.String("objdir", "", "Output object directory")
 	cflagsCmdApp     = cmdApp.String("cflags", "", "Additional compiler flags")
 	ldflagsCmdApp    = cmdApp.String("ldflags", "", "Additional linker flags")
-	forceBuildCmdApp = cmdApp.Bool("f", false, "force a complete build")
-	verboseCmdApp    = cmdApp.Bool("v", false, "verbose output")
+	forceBuildCmdApp = cmdApp.Bool("f", false, "Force a complete build")
+	verboseCmdApp    = cmdApp.Bool("v", false, "Verbose output")
 )
 
 func main() {
@@ -79,7 +79,7 @@ func main() {
 	case "static-lib":
 		cmdStaticLib.Parse(os.Args[2:])
 		if *ccCmdStaticLib == "" || *cfilesCmdStaticLib == "" || *objDirCmdStaticLib == "" || *libPathCmdStaticLib == "" {
-			fmt.Fprintf(os.Stderr, "❌ cc, cfiles, objdir, and libpath are required")
+			fmt.Fprintf(os.Stderr, "❌ cc, cfiles, objdir, and libpath are required\n")
 			os.Exit(1)
 		}
 		setVerbose(*verboseCmdStaticLib)
@@ -92,7 +92,7 @@ func main() {
 	case "app":
 		cmdApp.Parse(os.Args[2:])
 		if *ccCmdApp == "" || *cfilesCmdApp == "" || *objDirCmdApp == "" || *appPathCmdApp == "" {
-			fmt.Fprintf(os.Stderr, "❌ cc, cfiles, objdir, and app-path are required")
+			fmt.Fprintf(os.Stderr, "❌ cc, cfiles, objdir, and app-path are required\n")
 			os.Exit(1)
 		}
 		setVerbose(*verboseCmdApp)

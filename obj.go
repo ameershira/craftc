@@ -74,7 +74,7 @@ func depsAreUpToDate(ctx context.Context, objFile string, deps []string, objModT
 
 			info, err := os.Stat(dep)
 			if err != nil {
-				return fmt.Errorf("failed to stat %s: %w", dep, err)
+				return fmt.Errorf("failed to stat '%s': %w", dep, err)
 			}
 
 			if info.ModTime().After(objModTime) {
@@ -170,7 +170,7 @@ func runObj(ctx context.Context, cc, cfile, objdir, cflags string, forceBuild bo
 	}
 
 	if cc == "" || cfile == "" || objdir == "" {
-		return false, fmt.Errorf("cc, cfile, and objdir are required")
+		return false, fmt.Errorf("cc, cfile, and objdir are required\n")
 	}
 
 	fileName := encodeFilePath(cfile)

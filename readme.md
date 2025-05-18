@@ -1,4 +1,4 @@
 # CraftC
 
 # TODO:
-- stale obj file handling.
+- stale obj file handling: Done.

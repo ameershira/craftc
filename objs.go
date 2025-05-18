@@ -12,7 +12,7 @@ import (
 
 func runObjs(ctx context.Context, cc, cfiles, objdir, cflags string, forceBuild bool) (bool, error) {
 	if cc == "" || cfiles == "" || objdir == "" {
-		return false, fmt.Errorf("cc, cfiles, and objdir are required")
+		return false, fmt.Errorf("cc, cfiles, and objdir are required\n")
 	}
 
 	files := strings.Fields(cfiles)
