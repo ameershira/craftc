@@ -53,14 +53,14 @@ tasks:
     desc: Tests the objs cmd with a few source files
     cmds:
       - go build .
-      - time ./craftc objs -cc cc -cfiles "./libsrc/libsrc1.c ./libsrc/libsrc2.c" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" {{.CLI_ARGS}}
+      - time ./craftc objs -cc cc -cfiles "./libsrc/libsrc1.c ./libsrc/libsrc2.c" -objdir ./build/{{.TASK}}/obj -cflags "-Wall" {{.CLI_ARGS}}
 
 
   test3:
     desc: Tests the objs cmd with many generated source files
     vars:
       SRC:
-        sh: ls ./libgensrc/*.c
+        sh: echo ./libgensrc/*.c
     cmds:
       - go build .
       - time ./craftc objs -cc cc -cfiles "{{.SRC}}" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" {{.CLI_ARGS}}
@@ -114,7 +114,7 @@ tasks:
     cmds:
       - ./craftc app -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -ldflags "{{.LDFLAGS}}" -app-path {{.APP_PATH}} -lib-paths "{{.STATIC_LIB}}" {{.CLI_ARGS}}
       - '{{.APP_PATH}}'
-  
+
 
   test7:
     desc: Tests the app cmd with a few source files

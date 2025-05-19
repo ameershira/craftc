@@ -185,6 +185,7 @@ func runObj(ctx context.Context, cc, cfile, objdir, cflags string, forceBuild bo
 	}
 
 	// Build full command args
+	// {{.CC}} {{.CFLAGS}} -MMD -MF {{.DEP_FILE}} -c {{.CFILE}} -o {{.OBJ_FILE}}
 	args := append(cflagList, "-MMD", "-MF", depFile, "-c", cfile, "-o", objFile)
 	cmd := exec.CommandContext(ctx, cc, args...)
 

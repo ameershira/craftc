@@ -71,6 +71,7 @@ func runStaticLib(ctx context.Context, cc, cfiles, objdir, cflags, libPath strin
 		return err
 	}
 
+	// ar rcs {{.LIB_PATH}} {{.OBJ_DIR}}/*.o
 	args := append([]string{"rcs", libPath}, objs...)
 	cmd := exec.CommandContext(ctx, "ar", args...)
 	cmd.Stdout = os.Stdout

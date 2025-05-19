@@ -50,7 +50,7 @@ func appUpToDate(ctx context.Context, appPath, libPaths, cmdFile, cmd string) (b
 					return err
 				}
 				if libStat.ModTime().After(appStat.ModTime()) {
-					vprintf("[link] 🧠 %s: lib file %s is newer than app.\n", appPath, lib)
+					vprintf("[relink] 🧠 %s: lib file %s is newer than app.\n", appPath, lib)
 					libNewer.Store(true)
 					cancel() // cancel other goroutines
 					return nil
@@ -111,8 +111,8 @@ func runApp(ctx context.Context, cc, cfiles, objdir, cflags, ldflags, appPath, l
 		args = append(args, strings.Fields(ldflags)...)
 	}
 
-	args = append(args, "-o", appPath)
 	// {{.CC}} {{.OBJ_DIR}}/*.o {{.LIBS}} {{.LDFLAGS}} -o {{.APP_PATH}}'
+	args = append(args, "-o", appPath)
 	cmd := exec.CommandContext(ctx, cc, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
