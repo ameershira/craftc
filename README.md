@@ -27,11 +27,11 @@
 Install with Go:
 
 ```sh
-go install github.com/yourusername/craftc@latest
+go install github.com/ameergituser/craftc@latest
 ```
 Or clone and build manually:
 ```sh
-git clone https://github.com/yourusername/craftc
+git clone https://github.com/ameergituser/craftc
 cd craftc
 go build -o craftc .
 ```
