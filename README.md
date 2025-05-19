@@ -33,7 +33,7 @@ Or clone and build manually:
 ```sh
 git clone https://github.com/ameergituser/craftc
 cd craftc
-go build -o craftc .
+go build .
 ```
 ## ✅ Sample output
 Using the verbose option:
