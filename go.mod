@@ -1,4 +1,4 @@
-module craftc
+module github.com/ameergituser/craftc
 
 go 1.24.3
 
