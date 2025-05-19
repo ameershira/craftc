@@ -3,8 +3,9 @@
 
 > A fast, minimal C build tool inspired by Taskfile & Make. Designed for speed, clarity, and cross-platform simplicity.
 
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/yourusername/craftc)
-![GitHub](https://img.shields.io/github/license/yourusername/craftc)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/ameergituser/craftc)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/ameergituser/craftc/test.yml)
+![GitHub](https://img.shields.io/github/license/ameergituser/craftc)
 
 ---
 
