@@ -49,9 +49,23 @@ var (
 	verboseCmdApp    = cmdApp.Bool("v", false, "Verbose output")
 )
 
+func printUsage() {
+	fmt.Fprintf(os.Stderr, `Usage: %s <command> [options]
+
+Available commands:
+  obj         Compile a single source file to object file
+  objs        Compile multiple source files to object files
+  static-lib  Build a static library from multiple C source files
+  app         Build an application binary from source files and libraries
+
+Use %s "<command> -h" for command-specific options.
+
+`, os.Args[0], os.Args[0])
+}
+
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "❌ expected subcommand")
+		printUsage()
 		os.Exit(1)
 	}
 
@@ -102,8 +116,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "❌ %s: cmd `%s` failed: %v\n", os.Args[0], os.Args[1], err)
 			os.Exit(1)
 		}
+	case "-h", "--help", "help":
+		printUsage()
 	default:
-		fmt.Fprintf(os.Stderr, "❌ unknown subcommand: %s\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "❌ unknown subcommand: %s\n\n", os.Args[1])
+		printUsage()
 		os.Exit(1)
 	}
 }
