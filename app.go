@@ -25,6 +25,16 @@ func appUpToDate(ctx context.Context, appPath, libPaths, cmdFile, cmd string) (b
 		return false, err
 	}
 
+	// Check if cmd file exists
+	_, err = os.Stat(cmdFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			vprintf("[link] 🧠 %s: file does not exist.\n", appPath)
+			return false, nil
+		}
+		return false, err
+	}
+
 	// if we have libs, check if any is newer than the app
 	if libPaths != "" {
 		var libNewer atomic.Bool // tracks if any lib is newer than the app
