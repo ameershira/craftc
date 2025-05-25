@@ -12,7 +12,7 @@
 ## 🚀 Features
 
 - ⚡ Lightning-fast incremental builds
-- 🧠 Smart recompilation detection (like Make, but cleaner)
+- 🧠 Smart recompilation detection with reasoning
 - 🔨 C compiler integration with support for custom flags
 - 📦 Static library archiving
 - 🔗 Application linking

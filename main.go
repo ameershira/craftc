@@ -36,17 +36,17 @@ var (
 	forceBuildCmdStaticLib = cmdStaticLib.Bool("f", false, "Force a complete build")
 	verboseCmdStaticLib    = cmdStaticLib.Bool("v", false, "Verbose output")
 
-	// static-lib cmd flags
-	cmdApp           = flag.NewFlagSet("app", flag.ExitOnError)
-	appPathCmdApp    = cmdApp.String("app-path", "", "App path")
-	libPathsCmdApp   = cmdApp.String("lib-paths", "", "Space-separated list of Lib paths")
-	ccCmdApp         = cmdApp.String("cc", "", "C compiler")
-	cfilesCmdApp     = cmdApp.String("cfiles", "", "Space-separated list of C source files")
-	objDirCmdApp     = cmdApp.String("objdir", "", "Output object directory")
-	cflagsCmdApp     = cmdApp.String("cflags", "", "Additional compiler flags")
-	ldflagsCmdApp    = cmdApp.String("ldflags", "", "Additional linker flags")
-	forceBuildCmdApp = cmdApp.Bool("f", false, "Force a complete build")
-	verboseCmdApp    = cmdApp.Bool("v", false, "Verbose output")
+	// exe cmd flags
+	cmdExe           = flag.NewFlagSet("exe", flag.ExitOnError)
+	exePathCmdExe    = cmdExe.String("exe-path", "", "Executable path")
+	libPathsCmdExe   = cmdExe.String("lib-paths", "", "Space-separated list of Lib paths")
+	ccCmdExe         = cmdExe.String("cc", "", "C compiler")
+	cfilesCmdExe     = cmdExe.String("cfiles", "", "Space-separated list of C source files")
+	objDirCmdExe     = cmdExe.String("objdir", "", "Output object directory")
+	cflagsCmdExe     = cmdExe.String("cflags", "", "Additional compiler flags")
+	ldflagsCmdExe    = cmdExe.String("ldflags", "", "Additional linker flags")
+	forceBuildCmdExe = cmdExe.Bool("f", false, "Force a complete build")
+	verboseCmdExe    = cmdExe.Bool("v", false, "Verbose output")
 )
 
 func printUsage() {
@@ -56,11 +56,19 @@ Available commands:
   obj         Compile a single source file to object file
   objs        Compile multiple source files to object files
   static-lib  Build a static library from multiple C source files
-  app         Build an application binary from source files and libraries
+  exe         Build an application binary from source files and libraries
 
 Use %s "<command> -h" for command-specific options.
 
 `, os.Args[0], os.Args[0])
+}
+
+func runCmd(cmd Cmd) {
+	_, err := cmd.run()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "❌ %s: cmd `%s` failed: %v\n", os.Args[0], os.Args[1], err)
+		os.Exit(1)
+	}
 }
 
 func main() {
@@ -76,20 +84,14 @@ func main() {
 		cmdObj.Parse(os.Args[2:])
 		setVerbose(*verboseCmdObj)
 		vprintf("⚙️  Running cmd %s: %s\n", os.Args[1], *cfileCmdObj)
-		_, err := runObj(ctx, *ccCmdObj, *cfileCmdObj, *objDirCmdObj, *cflagsCmdObj, *forceBuildCmdObj)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "❌ %s: cmd `%s` failed: %v\n", os.Args[0], os.Args[1], err)
-			os.Exit(1)
-		}
+		obj := object{ctx: ctx, cc: *ccCmdObj, cfile: *cfileCmdObj, objdir: *objDirCmdObj, cflags: *cflagsCmdObj, forceBuild: *forceBuildCmdObj}
+		runCmd(obj)
 	case "objs":
 		cmdObjs.Parse(os.Args[2:])
 		setVerbose(*verboseCmdObjs)
 		vprintf("⚙️  Running cmd %s\n", os.Args[1])
-		_, err := runObjs(ctx, *ccCmdObjs, *cfilesCmdObjs, *objDirCmdObjs, *cflagsCmdObjs, *forceBuildCmdObjs)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "❌ %s: cmd `%s` failed: %v\n", os.Args[0], os.Args[1], err)
-			os.Exit(1)
-		}
+		objs := objects{ctx: ctx, cc: *ccCmdObjs, cfiles: *cfilesCmdObjs, objdir: *objDirCmdObjs, cflags: *cflagsCmdObjs, forceBuild: *forceBuildCmdObjs}
+		runCmd(objs)
 	case "static-lib":
 		cmdStaticLib.Parse(os.Args[2:])
 		if *ccCmdStaticLib == "" || *cfilesCmdStaticLib == "" || *objDirCmdStaticLib == "" || *libPathCmdStaticLib == "" {
@@ -98,24 +100,20 @@ func main() {
 		}
 		setVerbose(*verboseCmdStaticLib)
 		vprintf("⚙️  Running cmd %s: %s\n", os.Args[1], *libPathCmdStaticLib)
-		err := runStaticLib(ctx, *ccCmdStaticLib, *cfilesCmdStaticLib, *objDirCmdStaticLib, *cflagsCmdStaticLib, *libPathCmdStaticLib, *forceBuildCmdStaticLib)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "❌ %s: cmd `%s` failed: %v\n", os.Args[0], os.Args[1], err)
-			os.Exit(1)
-		}
-	case "app":
-		cmdApp.Parse(os.Args[2:])
-		if *ccCmdApp == "" || *cfilesCmdApp == "" || *objDirCmdApp == "" || *appPathCmdApp == "" {
+		sl := staticLib{ctx: ctx, cc: *ccCmdStaticLib, cfiles: *cfilesCmdStaticLib, objdir: *objDirCmdStaticLib,
+			cflags: *cflagsCmdStaticLib, libPath: *libPathCmdStaticLib, forceBuild: *forceBuildCmdStaticLib}
+		runCmd(sl)
+	case "exe":
+		cmdExe.Parse(os.Args[2:])
+		if *ccCmdExe == "" || *cfilesCmdExe == "" || *objDirCmdExe == "" || *exePathCmdExe == "" {
 			fmt.Fprintf(os.Stderr, "❌ cc, cfiles, objdir, and app-path are required\n")
 			os.Exit(1)
 		}
-		setVerbose(*verboseCmdApp)
-		vprintf("⚙️  Running cmd %s: %s\n", os.Args[1], *appPathCmdApp)
-		err := runApp(ctx, *ccCmdApp, *cfilesCmdApp, *objDirCmdApp, *cflagsCmdApp, *ldflagsCmdApp, *appPathCmdApp, *libPathsCmdApp, *forceBuildCmdApp)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "❌ %s: cmd `%s` failed: %v\n", os.Args[0], os.Args[1], err)
-			os.Exit(1)
-		}
+		setVerbose(*verboseCmdExe)
+		vprintf("⚙️  Running cmd %s: %s\n", os.Args[1], *exePathCmdExe)
+		exe := executable{ctx: ctx, cc: *ccCmdExe, cfiles: *cfilesCmdExe, objdir: *objDirCmdExe, cflags: *cflagsCmdExe,
+			ldflags: *ldflagsCmdExe, exePath: *exePathCmdExe, libPaths: *libPathsCmdExe, forceBuild: *forceBuildCmdExe}
+		runCmd(exe)
 	case "-h", "--help", "help":
 		printUsage()
 	default:

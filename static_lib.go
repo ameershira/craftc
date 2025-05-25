@@ -9,6 +9,12 @@ import (
 	"strings"
 )
 
+type staticLib struct {
+	ctx                                 context.Context
+	cc, cfiles, objdir, cflags, libPath string
+	forceBuild                          bool
+}
+
 func staticLibUpToDate(libPath string) (bool, error) {
 	// Check if lib file exists
 	_, err := os.Stat(libPath)
@@ -36,51 +42,53 @@ func getObjFiles(objdir, cfiles string) ([]string, error) {
 	return objs, nil
 }
 
-func runStaticLib(ctx context.Context, cc, cfiles, objdir, cflags, libPath string, forceBuild bool) error {
-
-	objsWasbuilt, err := runObjs(ctx, cc, cfiles, objdir, cflags, forceBuild)
+// run implements the Cmd interface
+func (s staticLib) run() (bool, error) {
+	objs := objects{ctx: s.ctx, cc: s.cc, cfiles: s.cfiles, objdir: s.objdir, cflags: s.cflags, forceBuild: s.forceBuild}
+	objsWasbuilt, err := objs.run()
 	if err != nil {
-		os.Remove(libPath)
-		return err
+		os.Remove(s.libPath)
+		return false, err
 	}
 
 	// Create the libpath directory if it does not exist
-	if err := os.MkdirAll(filepath.Dir(libPath), os.ModePerm); err != nil {
-		return err
+	if err := os.MkdirAll(filepath.Dir(s.libPath), os.ModePerm); err != nil {
+		return false, err
 	}
 
-	if !forceBuild && !objsWasbuilt {
-		upToDate, err := staticLibUpToDate(libPath)
+	if !s.forceBuild && !objsWasbuilt {
+		upToDate, err := staticLibUpToDate(s.libPath)
 		if err != nil {
-			os.Remove(libPath)
-			return err
+			os.Remove(s.libPath)
+			return false, err
 		}
 		if upToDate {
-			vprintf("✅ 📦 %s is up to date.\n", libPath)
-			return nil
+			vprintf("✅ 📦 %s is up to date.\n", s.libPath)
+			return false, nil
 		}
 	}
 
-	os.Remove(libPath)
+	os.Remove(s.libPath)
 
 	// generate the obj list to use when linking.
 	// this allows for accurate selection of obj files and
 	// wont add stale objs.
-	objs, err := getObjFiles(objdir, cfiles)
+	objFiles, err := getObjFiles(s.objdir, s.cfiles)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// ar rcs {{.LIB_PATH}} {{.OBJ_DIR}}/*.o
-	args := append([]string{"rcs", libPath}, objs...)
-	cmd := exec.CommandContext(ctx, "ar", args...)
+	args := append([]string{"rcs", s.libPath}, objFiles...)
+	cmd := exec.CommandContext(s.ctx, "ar", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	vprintf("[archive] 📦 %s\n", cmd.String())
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("archive failed for %s: %w", libPath, err)
+		return false, fmt.Errorf("archive failed for %s: %w", s.libPath, err)
 	}
 
-	return nil
+	// return true if we built the static lib
+	return true, nil
 }

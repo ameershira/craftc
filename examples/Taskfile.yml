@@ -66,7 +66,7 @@ tasks:
     cmds:
       - go build ../
       - time ./craftc objs -cc cc -cfiles "{{.SRC}}" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" {{.CLI_ARGS}}
-  
+
 
   test3-make:
     desc: Test build with a makefile
@@ -101,7 +101,7 @@ tasks:
     cmds:
       - go build ../
       - time ./craftc static-lib -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -lib-path "{{.STATIC_LIB}}" {{.CLI_ARGS}}
-  
+
 
   test6:
     desc: Tests the app cmd with a few source files
@@ -117,14 +117,14 @@ tasks:
       - task: test4
     cmds:
       - >
-        ./craftc app 
-        -cc cc 
-        -cfiles "{{.SRC}}" 
-        -objdir {{.OBJ_DIR}} 
-        -cflags "{{.CFLAGS}}" 
-        -ldflags "{{.LDFLAGS}}" 
-        -app-path {{.APP_PATH}} 
-        -lib-paths "{{.STATIC_LIB}}" 
+        ./craftc exe
+        -cc cc
+        -cfiles "{{.SRC}}"
+        -objdir {{.OBJ_DIR}}
+        -cflags "{{.CFLAGS}}"
+        -ldflags "{{.LDFLAGS}}"
+        -exe-path {{.APP_PATH}}
+        -lib-paths "{{.STATIC_LIB}}"
         {{.CLI_ARGS}}
       - '{{.APP_PATH}}'
 
@@ -140,21 +140,21 @@ tasks:
       STATIC_LIB: ./build/test5/test5.a
       CFLAGS: -Wall -O2 -I ./libgensrc
       # LDFLAGS: -Wl,--trace
-      APP_PATH: '{{.BUILD_DIR}}/{{.TASK}}-app'
+      EXE_PATH: '{{.BUILD_DIR}}/{{.TASK}}'
     deps:
       - task: test5
     cmds:
       - >
-        ./craftc app 
-        -cc cc 
-        -cfiles "{{.SRC}}" 
-        -objdir {{.OBJ_DIR}} 
-        -cflags "{{.CFLAGS}}" 
-        -ldflags "{{.LDFLAGS}}" 
-        -app-path {{.APP_PATH}} 
-        -lib-paths "{{.STATIC_LIB}}" 
+        ./craftc exe
+        -cc cc
+        -cfiles "{{.SRC}}"
+        -objdir {{.OBJ_DIR}}
+        -cflags "{{.CFLAGS}}"
+        -ldflags "{{.LDFLAGS}}"
+        -exe-path {{.EXE_PATH}}
+        -lib-paths "{{.STATIC_LIB}}"
         {{.CLI_ARGS}}
-      - '{{.APP_PATH}}'
+      - '{{.EXE_PATH}}'
 
 
   all:

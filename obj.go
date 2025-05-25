@@ -14,6 +14,12 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+type object struct {
+	ctx                       context.Context
+	cc, cfile, objdir, cflags string
+	forceBuild                bool
+}
+
 func encodeFilePath(filePath string) string {
 	encodedPath := filepath.Clean(filePath)
 	encodedPath = strings.TrimPrefix(encodedPath, "./")
@@ -49,14 +55,14 @@ func parseDepFile(depFile string) ([]string, error) {
 	return strings.Fields(content[colonIndex+1:]), nil
 }
 
-func depsAreUpToDate(ctx context.Context, objFile string, deps []string, objModTime time.Time) (bool, error) {
+func (o object) depsAreUpToDate(objFile string, deps []string, objModTime time.Time) (bool, error) {
 	if len(deps) == 0 {
 		return true, nil
 	}
 
 	var triggered atomic.Bool
 
-	g, ctx := errgroup.WithContext(ctx)
+	g, _ := errgroup.WithContext(o.ctx)
 	// limit the io-bound goroutines
 	g.SetLimit(runtime.NumCPU() * 4) // this can possibly be higher
 
@@ -97,7 +103,7 @@ func depsAreUpToDate(ctx context.Context, objFile string, deps []string, objModT
 	return true, nil // all is up to date, no rebuild
 }
 
-func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd string) (bool, error) {
+func (o object) objIsUpToDate(objFile, depFile, cmdFile, cmd string) (bool, error) {
 
 	// Check if object file exists
 	objStat, err := os.Stat(objFile)
@@ -128,12 +134,12 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	}
 
 	// if source file is newer than the obj file
-	srcStat, err := os.Stat(fileName)
+	srcStat, err := os.Stat(o.cfile)
 	if err != nil {
 		return false, err
 	}
 	if srcStat.ModTime().After(objStat.ModTime()) {
-		vprintf("[rebuild] 🧠 %s: source file %s is newer than object.\n", objFile, fileName)
+		vprintf("[rebuild] 🧠 %s: source file %s is newer than object.\n", objFile, o.cfile)
 		return false, nil
 	}
 
@@ -154,7 +160,7 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	}
 
 	// Concurrently check dep files mod time
-	upToDate, err := depsAreUpToDate(ctx, objFile, depFiles, objStat.ModTime())
+	upToDate, err := o.depsAreUpToDate(objFile, depFiles, objStat.ModTime())
 	if err != nil {
 		return false, err
 	}
@@ -162,36 +168,37 @@ func objIsUpToDate(ctx context.Context, fileName, objFile, depFile, cmdFile, cmd
 	return upToDate, nil
 }
 
-func runObj(ctx context.Context, cc, cfile, objdir, cflags string, forceBuild bool) (bool, error) {
+// run implements the Cmd interface
+func (o object) run() (bool, error) {
 	select {
-	case <-ctx.Done():
-		return false, ctx.Err() // early exit
+	case <-o.ctx.Done():
+		return false, o.ctx.Err() // early exit
 	default:
 	}
 
-	if cc == "" || cfile == "" || objdir == "" {
+	if o.cc == "" || o.cfile == "" || o.objdir == "" {
 		return false, fmt.Errorf("cc, cfile, and objdir are required\n")
 	}
 
-	fileName := encodeFilePath(cfile)
-	objFile := filepath.Join(objdir, fileName+".o")
-	depFile := filepath.Join(objdir, fileName+".d")
-	cmdFile := filepath.Join(objdir, fileName+".cmd")
+	fileName := encodeFilePath(o.cfile)
+	objFile := filepath.Join(o.objdir, fileName+".o")
+	depFile := filepath.Join(o.objdir, fileName+".d")
+	cmdFile := filepath.Join(o.objdir, fileName+".cmd")
 
 	// Tokenize cflags
 	var cflagList []string
-	if cflags != "" {
-		cflagList = strings.Fields(cflags)
+	if o.cflags != "" {
+		cflagList = strings.Fields(o.cflags)
 	}
 
 	// Build full command args
 	// {{.CC}} {{.CFLAGS}} -MMD -MF {{.DEP_FILE}} -c {{.CFILE}} -o {{.OBJ_FILE}}
-	args := append(cflagList, "-MMD", "-MF", depFile, "-c", cfile, "-o", objFile)
-	cmd := exec.CommandContext(ctx, cc, args...)
+	args := append(cflagList, "-MMD", "-MF", depFile, "-c", o.cfile, "-o", objFile)
+	cmd := exec.CommandContext(o.ctx, o.cc, args...)
 
-	if !forceBuild {
+	if !o.forceBuild {
 		// check if we should compile
-		upTodate, err := objIsUpToDate(ctx, cfile, objFile, depFile, cmdFile, cmd.String())
+		upTodate, err := o.objIsUpToDate(objFile, depFile, cmdFile, cmd.String())
 		if err != nil {
 			return false, err
 		}
@@ -202,7 +209,7 @@ func runObj(ctx context.Context, cc, cfile, objdir, cflags string, forceBuild bo
 	}
 
 	// Create the directory if it does not exist
-	if err := os.MkdirAll(objdir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(o.objdir, os.ModePerm); err != nil {
 		return false, err
 	}
 
@@ -215,7 +222,7 @@ func runObj(ctx context.Context, cc, cfile, objdir, cflags string, forceBuild bo
 
 	vprintf("[compile] 🔨 %s\n", cmd.String())
 	if err := cmd.Run(); err != nil {
-		return false, fmt.Errorf("compilation failed for %s: %w", cfile, err)
+		return false, fmt.Errorf("compilation failed for %s: %w", o.cfile, err)
 	}
 
 	// The `.cmd` file stores the exact compile command line used.

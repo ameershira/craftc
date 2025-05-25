@@ -10,26 +10,34 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func runObjs(ctx context.Context, cc, cfiles, objdir, cflags string, forceBuild bool) (bool, error) {
-	if cc == "" || cfiles == "" || objdir == "" {
+type objects struct {
+	ctx                        context.Context
+	cc, cfiles, objdir, cflags string
+	forceBuild                 bool
+}
+
+// run implements the Cmd interface
+func (o objects) run() (bool, error) {
+	if o.cc == "" || o.cfiles == "" || o.objdir == "" {
 		return false, fmt.Errorf("cc, cfiles, and objdir are required\n")
 	}
 
-	files := strings.Fields(cfiles)
+	files := strings.Fields(o.cfiles)
 	if len(files) == 0 {
 		return false, fmt.Errorf("no source files specified")
 	}
 
 	var anyObjsBuilt atomic.Bool // tracks if any object was built
 
-	g, ctx := errgroup.WithContext(ctx)
+	g, ctx := errgroup.WithContext(o.ctx)
 	// limit the cpu bound goroutines to the number of logical cpus
 	g.SetLimit(runtime.NumCPU())
 
 	// kickoff a goroutine per source file
 	for _, file := range files {
 		g.Go(func() error {
-			builtObj, err := runObj(ctx, cc, file, objdir, cflags, forceBuild)
+			obj := object{ctx: ctx, cc: o.cc, cfile: file, objdir: o.objdir, cflags: o.cflags, forceBuild: o.forceBuild}
+			builtObj, err := obj.run()
 			if err != nil {
 				return err
 			}
