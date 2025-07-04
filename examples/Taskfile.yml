@@ -157,6 +157,13 @@ tasks:
       - '{{.EXE_PATH}}'
 
 
+  test8:
+    desc: Tests the ignore unknown flags feature.
+    cmds:
+      - go build ../
+      - ./craftc obj -cc cc -cfile ./libsrc/libsrc1.c -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" -i {{.CLI_ARGS}}
+
+
   all:
     desc: Run all tests.
     cmds:
