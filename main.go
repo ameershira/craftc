@@ -9,7 +9,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-const version = "0.5.0"
+const version = "0.5.2"
 
 // common flags
 var (
