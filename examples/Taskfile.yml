@@ -175,3 +175,4 @@ tasks:
       - task: test5
       - task: test6
       - task: test7
+      - task: test8

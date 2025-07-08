@@ -25,7 +25,7 @@ func filterArgs(args []string, cmd *cli.Command, verbose bool) []string {
 	finalArgs := []string{args[0]}
 
 	// strip the app name
-	args = args[1:]
+	argsTmp := args[1:]
 
 	for _, f := range cmd.Flags {
 		allFlags = append(allFlags, f)
@@ -53,7 +53,7 @@ func filterArgs(args []string, cmd *cli.Command, verbose bool) []string {
 	}
 
 	skip := false
-	for i, arg := range args {
+	for i, arg := range argsTmp {
 		if skip {
 			skip = false
 			continue
@@ -67,8 +67,8 @@ func filterArgs(args []string, cmd *cli.Command, verbose bool) []string {
 			if ok {
 				finalArgs = append(finalArgs, arg)
 				if expectValue {
-					if i+1 < len(args) {
-						finalArgs = append(finalArgs, args[i+1])
+					if i+1 < len(argsTmp) {
+						finalArgs = append(finalArgs, argsTmp[i+1])
 					}
 					skip = true
 				}
