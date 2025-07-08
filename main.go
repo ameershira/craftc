@@ -11,6 +11,14 @@ import (
 
 const version = "0.5.0"
 
+// common flags
+var (
+	ccFlag     = &cli.StringFlag{Name: "cc", Usage: "C compiler", Required: true}
+	cflagsFlag = &cli.StringFlag{Name: "cflags", Usage: "Additional compiler flags"}
+	objdirFlag = &cli.StringFlag{Name: "objdir", Usage: "Output object directory", Required: true}
+	cfilesFlag = &cli.StringFlag{Name: "cfiles", Usage: "Space-separated list of C source files", Required: true}
+)
+
 func runCmd(cmd Cmd) {
 	_, err := cmd.run()
 	if err != nil {
@@ -121,10 +129,10 @@ func main() {
 				Name:  "obj",
 				Usage: "Compile a single source file to object file",
 				Flags: []cli.Flag{
-					&cli.StringFlag{Name: "cc", Usage: "C compiler", Required: true},
+					ccFlag,
+					objdirFlag,
+					cflagsFlag,
 					&cli.StringFlag{Name: "cfile", Usage: "C source file", Required: true},
-					&cli.StringFlag{Name: "objdir", Usage: "Output object directory", Required: true},
-					&cli.StringFlag{Name: "cflags", Usage: "Additional compiler flags"},
 				},
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					setVerbose(cmd.Bool("v"))
@@ -144,10 +152,10 @@ func main() {
 				Name:  "objs",
 				Usage: "Compile multiple source files to object files",
 				Flags: []cli.Flag{
-					&cli.StringFlag{Name: "cc", Usage: "C compiler", Required: true},
-					&cli.StringFlag{Name: "cfiles", Usage: "Space-separated list of C source files", Required: true},
-					&cli.StringFlag{Name: "objdir", Usage: "Output object directory", Required: true},
-					&cli.StringFlag{Name: "cflags", Usage: "Additional compiler flags"},
+					ccFlag,
+					cfilesFlag,
+					objdirFlag,
+					cflagsFlag,
 				},
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					setVerbose(cmd.Bool("v"))
@@ -167,12 +175,11 @@ func main() {
 				Name:  "static-lib",
 				Usage: "Build a static library from multiple source files",
 				Flags: []cli.Flag{
+					ccFlag,
+					cfilesFlag,
+					objdirFlag,
+					cflagsFlag,
 					&cli.StringFlag{Name: "lib-path", Usage: "Library path", Required: true},
-					&cli.StringFlag{Name: "cc", Usage: "C compiler", Required: true},
-					&cli.StringFlag{Name: "cfiles", Usage: "Space-separated list of C source files", Required: true},
-					&cli.StringFlag{Name: "objdir", Usage: "Output object directory", Required: true},
-					&cli.StringFlag{Name: "cflags", Usage: "Additional compiler flags"},
-					&cli.BoolFlag{Name: "f", Usage: "Force a complete build"},
 				},
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					setVerbose(cmd.Bool("v"))
@@ -193,12 +200,12 @@ func main() {
 				Name:  "exe",
 				Usage: "Build an application binary from source files and libraries",
 				Flags: []cli.Flag{
+					ccFlag,
+					cfilesFlag,
+					objdirFlag,
+					cflagsFlag,
 					&cli.StringFlag{Name: "exe-path", Usage: "Executable path", Required: true},
 					&cli.StringFlag{Name: "lib-paths", Usage: "Space-separated list of library paths"},
-					&cli.StringFlag{Name: "cc", Usage: "C compiler", Required: true},
-					&cli.StringFlag{Name: "cfiles", Usage: "Space-separated list of C source files", Required: true},
-					&cli.StringFlag{Name: "objdir", Usage: "Output object directory", Required: true},
-					&cli.StringFlag{Name: "cflags", Usage: "Additional compiler flags"},
 					&cli.StringFlag{Name: "ldflags", Usage: "Additional linker flags"},
 				},
 				Action: func(ctx context.Context, cmd *cli.Command) error {
