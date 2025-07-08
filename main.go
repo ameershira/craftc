@@ -2,72 +2,14 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
+	"strings"
+
+	"github.com/urfave/cli/v3"
 )
 
-type commonFlags struct {
-	cc         *string
-	cflags     *string
-	objDir     *string
-	forceBuild *bool
-	verbose    *bool
-}
-
-func addCommonFlags(fs *flag.FlagSet) *commonFlags {
-	return &commonFlags{
-		cc:         fs.String("cc", "", "C compiler"),
-		cflags:     fs.String("cflags", "", "Additional compiler flags"),
-		objDir:     fs.String("objdir", "", "Output object directory"),
-		forceBuild: fs.Bool("f", false, "Force a complete build"),
-		verbose:    fs.Bool("v", false, "Verbose output"),
-	}
-}
-
-func addCFilesFlag(fs *flag.FlagSet) *string {
-	return fs.String("cfiles", "", "Space-separated list of C source files")
-}
-
-var (
-	// obj cmd
-	cmdObj      = flag.NewFlagSet("obj", flag.ExitOnError)
-	flagsCmdObj = addCommonFlags(cmdObj)
-	cfileCmdObj = cmdObj.String("cfile", "", "C source file")
-
-	// objs cmd
-	cmdObjs       = flag.NewFlagSet("objs", flag.ExitOnError)
-	flagsCmdObjs  = addCommonFlags(cmdObjs)
-	cfilesCmdObjs = addCFilesFlag(cmdObjs)
-
-	// static-lib cmd
-	cmdStaticLib        = flag.NewFlagSet("static-lib", flag.ExitOnError)
-	flagsCmdStaticLib   = addCommonFlags(cmdStaticLib)
-	cfilesCmdStaticLib  = addCFilesFlag(cmdStaticLib)
-	libPathCmdStaticLib = cmdStaticLib.String("lib-path", "", "Library path")
-
-	// exe cmd
-	cmdExe         = flag.NewFlagSet("exe", flag.ExitOnError)
-	flagsCmdExe    = addCommonFlags(cmdExe)
-	cfilesCmdExe   = addCFilesFlag(cmdExe)
-	exePathCmdExe  = cmdExe.String("exe-path", "", "Executable path")
-	libPathsCmdExe = cmdExe.String("lib-paths", "", "Space-separated list of library paths")
-	ldflagsCmdExe  = cmdExe.String("ldflags", "", "Additional linker flags")
-)
-
-func printUsage() {
-	fmt.Fprintf(os.Stderr, `Usage: %s <command> [options]
-
-Available commands:
-  obj         Compile a single source file to object file
-  objs        Compile multiple source files to object files
-  static-lib  Build a static library from multiple C source files
-  exe         Build an application binary from source files and libraries
-
-Use %s "<command> -h" for command-specific options.
-
-`, os.Args[0], os.Args[0])
-}
+const version = "0.5.0"
 
 func runCmd(cmd Cmd) {
 	_, err := cmd.run()
@@ -77,57 +19,227 @@ func runCmd(cmd Cmd) {
 	}
 }
 
-func main() {
-	if len(os.Args) < 2 {
-		printUsage()
-		os.Exit(1)
+func filterArgs(args []string, cmd *cli.Command, verbose bool) []string {
+	var filterArgs = make(map[string]bool)
+	var allFlags []cli.Flag
+	finalArgs := []string{args[0]}
+
+	// strip the app name
+	args = args[1:]
+
+	for _, f := range cmd.Flags {
+		allFlags = append(allFlags, f)
 	}
 
-	ctx := context.Background()
-
-	subCmd := os.Args[1]
-	subArgs := os.Args[2:]
-
-	switch subCmd {
-	case "obj":
-		cmdObj.Parse(subArgs)
-		setVerbose(*flagsCmdObj.verbose)
-		vprintf("⚙️  Running cmd %s: %s\n", os.Args[1], *cfileCmdObj)
-		obj := object{ctx: ctx, cc: *flagsCmdObj.cc, cfile: *cfileCmdObj, objdir: *flagsCmdObj.objDir, cflags: *flagsCmdObj.cflags, forceBuild: *flagsCmdObj.forceBuild}
-		runCmd(obj)
-	case "objs":
-		cmdObjs.Parse(subArgs)
-		setVerbose(*flagsCmdObjs.verbose)
-		vprintf("⚙️  Running cmd %s\n", os.Args[1])
-		objs := objects{ctx: ctx, cc: *flagsCmdObjs.cc, cfiles: *cfilesCmdObjs, objdir: *flagsCmdObjs.objDir, cflags: *flagsCmdObjs.cflags, forceBuild: *flagsCmdObjs.forceBuild}
-		runCmd(objs)
-	case "static-lib":
-		cmdStaticLib.Parse(subArgs)
-		if *flagsCmdStaticLib.cc == "" || *cfilesCmdStaticLib == "" || *flagsCmdStaticLib.objDir == "" || *libPathCmdStaticLib == "" {
-			fmt.Fprintf(os.Stderr, "❌ cc, cfiles, objdir, and libpath are required\n")
-			os.Exit(1)
+	for _, c := range cmd.Commands {
+		filterArgs[c.Name] = false
+		for _, f := range c.Flags {
+			allFlags = append(allFlags, f)
 		}
-		setVerbose(*flagsCmdStaticLib.verbose)
-		vprintf("⚙️  Running cmd %s: %s\n", os.Args[1], *libPathCmdStaticLib)
-		sl := staticLib{ctx: ctx, cc: *flagsCmdStaticLib.cc, cfiles: *cfilesCmdStaticLib, objdir: *flagsCmdStaticLib.objDir,
-			cflags: *flagsCmdStaticLib.cflags, libPath: *libPathCmdStaticLib, forceBuild: *flagsCmdStaticLib.forceBuild}
-		runCmd(sl)
-	case "exe":
-		cmdExe.Parse(subArgs)
-		if *flagsCmdExe.cc == "" || *cfilesCmdExe == "" || *flagsCmdExe.objDir == "" || *exePathCmdExe == "" {
-			fmt.Fprintf(os.Stderr, "❌ cc, cfiles, objdir, and app-path are required\n")
-			os.Exit(1)
+	}
+
+	for _, f := range allFlags {
+		switch tf := f.(type) {
+		case *cli.BoolFlag:
+			for _, k := range tf.Names() {
+				filterArgs[k] = false // does not expect value
+			}
+		// Add other types as needed if you use them
+		default:
+			for _, k := range f.Names() {
+				filterArgs[k] = true // conservative fallback: assume expects value
+			}
 		}
-		setVerbose(*flagsCmdExe.verbose)
-		vprintf("⚙️  Running cmd %s: %s\n", os.Args[1], *exePathCmdExe)
-		exe := executable{ctx: ctx, cc: *flagsCmdExe.cc, cfiles: *cfilesCmdExe, objdir: *flagsCmdExe.objDir, cflags: *flagsCmdExe.cflags,
-			ldflags: *ldflagsCmdExe, exePath: *exePathCmdExe, libPaths: *libPathsCmdExe, forceBuild: *flagsCmdExe.forceBuild}
-		runCmd(exe)
-	case "-h", "--help", "help":
-		printUsage()
-	default:
-		fmt.Fprintf(os.Stderr, "❌ unknown subcommand: %s\n\n", os.Args[1])
-		printUsage()
+	}
+
+	skip := false
+	for i, arg := range args {
+		if skip {
+			skip = false
+			continue
+		}
+
+		if strings.HasPrefix(arg, "-") {
+			// is a flag
+			trimmedArg := strings.TrimLeft(arg, "-")
+			// check if exists in filter
+			expectValue, ok := filterArgs[trimmedArg]
+			if ok {
+				finalArgs = append(finalArgs, arg)
+				if expectValue {
+					if i+1 < len(args) {
+						finalArgs = append(finalArgs, args[i+1])
+					}
+					skip = true
+				}
+			} else if verbose {
+				fmt.Fprintf(os.Stderr, "⚠️  Ignoring unknown arg: %q\n", arg)
+			}
+		} else {
+			// is a cmd
+			// check if exists in filter
+			_, ok := filterArgs[arg]
+			if ok {
+				finalArgs = append(finalArgs, arg)
+			} else if verbose {
+				fmt.Fprintf(os.Stderr, "⚠️  Ignoring unknown arg: %q\n", arg)
+			}
+		}
+	}
+
+	return finalArgs
+}
+
+func main() {
+	cmd := &cli.Command{
+		Name:    "craftc",
+		Usage:   "A fast, minimal C build tool",
+		Version: version,
+		// Global options.
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "v",
+				Aliases: []string{"verbose"},
+				Usage:   "Enable verbose output",
+			},
+			&cli.BoolFlag{
+				Name:    "i",
+				Aliases: []string{"ignore"},
+				Usage:   "Ignore unknown commands and flags",
+			},
+			&cli.BoolFlag{
+				Name:    "f",
+				Aliases: []string{"force"},
+				Usage:   "Force a complete build",
+			},
+		},
+		EnableShellCompletion: true,
+
+		// Sub-commands.
+		Commands: []*cli.Command{
+			{
+				Name:  "obj",
+				Usage: "Compile a single source file to object file",
+				Flags: []cli.Flag{
+					&cli.StringFlag{Name: "cc", Usage: "C compiler", Required: true},
+					&cli.StringFlag{Name: "cfile", Usage: "C source file", Required: true},
+					&cli.StringFlag{Name: "objdir", Usage: "Output object directory", Required: true},
+					&cli.StringFlag{Name: "cflags", Usage: "Additional compiler flags"},
+				},
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					setVerbose(cmd.Bool("v"))
+					obj := object{
+						ctx:        ctx,
+						cc:         cmd.String("cc"),
+						cfile:      cmd.String("cfile"),
+						objdir:     cmd.String("objdir"),
+						cflags:     cmd.String("cflags"),
+						forceBuild: cmd.Bool("f"),
+					}
+					runCmd(obj)
+					return nil
+				},
+			},
+			{
+				Name:  "objs",
+				Usage: "Compile multiple source files to object files",
+				Flags: []cli.Flag{
+					&cli.StringFlag{Name: "cc", Usage: "C compiler", Required: true},
+					&cli.StringFlag{Name: "cfiles", Usage: "Space-separated list of C source files", Required: true},
+					&cli.StringFlag{Name: "objdir", Usage: "Output object directory", Required: true},
+					&cli.StringFlag{Name: "cflags", Usage: "Additional compiler flags"},
+				},
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					setVerbose(cmd.Bool("v"))
+					objs := objects{
+						ctx:        ctx,
+						cc:         cmd.String("cc"),
+						cfiles:     cmd.String("cfiles"),
+						objdir:     cmd.String("objdir"),
+						cflags:     cmd.String("cflags"),
+						forceBuild: cmd.Bool("f"),
+					}
+					runCmd(objs)
+					return nil
+				},
+			},
+			{
+				Name:  "static-lib",
+				Usage: "Build a static library from multiple source files",
+				Flags: []cli.Flag{
+					&cli.StringFlag{Name: "lib-path", Usage: "Library path", Required: true},
+					&cli.StringFlag{Name: "cc", Usage: "C compiler", Required: true},
+					&cli.StringFlag{Name: "cfiles", Usage: "Space-separated list of C source files", Required: true},
+					&cli.StringFlag{Name: "objdir", Usage: "Output object directory", Required: true},
+					&cli.StringFlag{Name: "cflags", Usage: "Additional compiler flags"},
+					&cli.BoolFlag{Name: "f", Usage: "Force a complete build"},
+				},
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					setVerbose(cmd.Bool("v"))
+					sl := staticLib{
+						ctx:        ctx,
+						cc:         cmd.String("cc"),
+						cfiles:     cmd.String("cfiles"),
+						objdir:     cmd.String("objdir"),
+						cflags:     cmd.String("cflags"),
+						libPath:    cmd.String("lib-path"),
+						forceBuild: cmd.Bool("f"),
+					}
+					runCmd(sl)
+					return nil
+				},
+			},
+			{
+				Name:  "exe",
+				Usage: "Build an application binary from source files and libraries",
+				Flags: []cli.Flag{
+					&cli.StringFlag{Name: "exe-path", Usage: "Executable path", Required: true},
+					&cli.StringFlag{Name: "lib-paths", Usage: "Space-separated list of library paths"},
+					&cli.StringFlag{Name: "cc", Usage: "C compiler", Required: true},
+					&cli.StringFlag{Name: "cfiles", Usage: "Space-separated list of C source files", Required: true},
+					&cli.StringFlag{Name: "objdir", Usage: "Output object directory", Required: true},
+					&cli.StringFlag{Name: "cflags", Usage: "Additional compiler flags"},
+					&cli.StringFlag{Name: "ldflags", Usage: "Additional linker flags"},
+				},
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					setVerbose(cmd.Bool("v"))
+					exe := executable{
+						ctx:        ctx,
+						cc:         cmd.String("cc"),
+						cfiles:     cmd.String("cfiles"),
+						objdir:     cmd.String("objdir"),
+						cflags:     cmd.String("cflags"),
+						ldflags:    cmd.String("ldflags"),
+						exePath:    cmd.String("exe-path"),
+						libPaths:   cmd.String("lib-paths"),
+						forceBuild: cmd.Bool("f"),
+					}
+					runCmd(exe)
+					return nil
+				},
+			},
+		},
+	}
+
+	// Determine if the ignore flag was set
+	ignore := false
+	verbose := false
+	for _, arg := range os.Args {
+		if arg == "-i" || arg == "--ignore" {
+			ignore = true
+		}
+		if arg == "-v" || arg == "--verbose" {
+			verbose = true
+		}
+	}
+
+	args := os.Args
+	if ignore {
+		args = filterArgs(os.Args, cmd, verbose)
+	}
+
+	if err := cmd.Run(context.Background(), args); err != nil {
+		fmt.Fprintf(os.Stderr, "❌ %s\n", err)
 		os.Exit(1)
 	}
 }

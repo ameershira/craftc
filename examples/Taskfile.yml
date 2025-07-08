@@ -46,14 +46,14 @@ tasks:
     desc: Tests the obj cmd
     cmds:
       - go build ../
-      - ./craftc obj -cc cc -cfile ./libsrc/libsrc1.c -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" {{.CLI_ARGS}}
+      - ./craftc obj -cc cc -cfile ./libsrc/libsrc1.c -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" -i {{.CLI_ARGS}}
 
 
   test2:
     desc: Tests the objs cmd with a few source files
     cmds:
       - go build ../
-      - ./craftc objs -cc cc -cfiles "./libsrc/libsrc1.c ./libsrc/libsrc2.c" -objdir ./build/{{.TASK}}/obj -cflags "-Wall" {{.CLI_ARGS}}
+      - ./craftc objs -cc cc -cfiles "./libsrc/libsrc1.c ./libsrc/libsrc2.c" -objdir ./build/{{.TASK}}/obj -cflags "-Wall" -i {{.CLI_ARGS}}
 
 
   test3:
@@ -65,7 +65,7 @@ tasks:
         sh: echo ./libgensrc/*.c
     cmds:
       - go build ../
-      - time ./craftc objs -cc cc -cfiles "{{.SRC}}" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" {{.CLI_ARGS}}
+      - time ./craftc objs -cc cc -cfiles "{{.SRC}}" -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" -i {{.CLI_ARGS}}
 
 
   test3-make:
@@ -84,7 +84,7 @@ tasks:
       CFLAGS: -Wall -O2
     cmds:
       - go build ../
-      - ./craftc static-lib -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -lib-path "{{.STATIC_LIB}}" {{.CLI_ARGS}}
+      - ./craftc static-lib -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -lib-path "{{.STATIC_LIB}}" -i {{.CLI_ARGS}}
 
 
   test5:
@@ -100,11 +100,11 @@ tasks:
       CFLAGS: -Wall -O2
     cmds:
       - go build ../
-      - time ./craftc static-lib -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -lib-path "{{.STATIC_LIB}}" {{.CLI_ARGS}}
+      - time ./craftc static-lib -cc cc -cfiles "{{.SRC}}" -objdir {{.OBJ_DIR}} -cflags "{{.CFLAGS}}" -lib-path "{{.STATIC_LIB}}" -i {{.CLI_ARGS}}
 
 
   test6:
-    desc: Tests the app cmd with a few source files
+    desc: Tests the exe cmd with a few source files
     vars:
       BUILD_DIR: ./build/{{.TASK}}
       OBJ_DIR: '{{.BUILD_DIR}}/obj'
@@ -125,12 +125,12 @@ tasks:
         -ldflags "{{.LDFLAGS}}"
         -exe-path {{.APP_PATH}}
         -lib-paths "{{.STATIC_LIB}}"
-        {{.CLI_ARGS}}
+        -i {{.CLI_ARGS}}
       - '{{.APP_PATH}}'
 
 
   test7:
-    desc: Tests the app cmd with a few source files.
+    desc: Tests the exe cmd with a few source files.
     summary: |
       Generate example source before running.
     vars:
@@ -153,7 +153,7 @@ tasks:
         -ldflags "{{.LDFLAGS}}"
         -exe-path {{.EXE_PATH}}
         -lib-paths "{{.STATIC_LIB}}"
-        {{.CLI_ARGS}}
+        -i {{.CLI_ARGS}}
       - '{{.EXE_PATH}}'
 
 
@@ -161,7 +161,7 @@ tasks:
     desc: Tests the ignore unknown flags feature.
     cmds:
       - go build ../
-      - ./craftc obj -cc cc -cfile ./libsrc/libsrc1.c -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" -i {{.CLI_ARGS}}
+      - ./craftc obj -cc cc -cfile ./libsrc/libsrc1.c -objdir ./build/{{.TASK}}/obj -cflags "-Wall -O2" -i -this -is a "test" -v {{.CLI_ARGS}}
 
 
   all:

@@ -176,10 +176,6 @@ func (o object) run() (bool, error) {
 	default:
 	}
 
-	if o.cc == "" || o.cfile == "" || o.objdir == "" {
-		return false, fmt.Errorf("cc, cfile, and objdir are required\n")
-	}
-
 	fileName := encodeFilePath(o.cfile)
 	objFile := filepath.Join(o.objdir, fileName+".o")
 	depFile := filepath.Join(o.objdir, fileName+".d")
