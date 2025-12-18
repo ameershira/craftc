@@ -52,7 +52,6 @@ func filterArgs(args []string, cmd *cli.Command, verbose bool) []string {
 			for _, k := range tf.Names() {
 				filterArgs[k] = false // does not expect value
 			}
-		// Add other types as needed if you use them
 		default:
 			for _, k := range f.Names() {
 				filterArgs[k] = true // conservative fallback: assume expects value
