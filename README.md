@@ -3,6 +3,7 @@
 
 > A fast, minimal C build tool inspired by Taskfile & Make. Designed for speed, clarity, and cross-platform simplicity.
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/ameershira/craftc.svg)](https://pkg.go.dev/github.com/ameershira/craftc)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/ameershira/craftc)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/ameershira/craftc/go.yml)
 ![GitHub](https://img.shields.io/github/license/ameershira/craftc)
@@ -19,6 +20,18 @@
 - ✅ Clear verbose output option
 - 🧩 Simple CLI
 - 🧰 Cross-platform: Linux, (macOS, Windows not tested yet)
+
+---
+
+## ⚠️ Module path change
+
+This module was previously published as:
+
+    github.com/ameergituser/craftc
+
+New versions are published under:
+
+    github.com/ameershira/craftc
 
 ---
 
