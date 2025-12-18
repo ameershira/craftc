@@ -3,9 +3,9 @@
 
 > A fast, minimal C build tool inspired by Taskfile & Make. Designed for speed, clarity, and cross-platform simplicity.
 
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/ameergituser/craftc)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/ameergituser/craftc/go.yml)
-![GitHub](https://img.shields.io/github/license/ameergituser/craftc)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/ameershira/craftc)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/ameershira/craftc/go.yml)
+![GitHub](https://img.shields.io/github/license/ameershira/craftc)
 
 ---
 
@@ -27,11 +27,11 @@
 Install with Go:
 
 ```sh
-go install github.com/ameergituser/craftc@latest
+go install github.com/ameershira/craftc@latest
 ```
 Or clone and build manually:
 ```sh
-git clone https://github.com/ameergituser/craftc
+git clone https://github.com/ameershira/craftc
 cd craftc
 go build .
 ```
