@@ -25,6 +25,34 @@ do not need to be rebuilt.
 
 Linux is supported. macOS and Windows have not been tested.
 
+## How craftc decides to rebuild
+
+For each object file, craftc checks whether:
+
+- The object file exists
+- Its dependency file exists
+- Its recorded compile command exists
+- The source file is newer than the object
+- Any recorded project dependency is newer than the object
+- The compile command, compiler, or compiler flags have changed
+
+When linking an executable, craftc checks whether:
+
+- The executable exists
+- Any application object was rebuilt during the current run
+- Its recorded link command exists
+- Any linked library is newer than the executable
+- The link command, compiler, library list, or linker flags have changed
+
+A static library is recreated when:
+
+- The archive does not exist
+- Any of its object files was rebuilt during the current run
+- A forced build was requested
+
+Passing `--force` bypasses the up-to-date checks and rebuilds the requested
+target completely.
+
 ## Module path change
 
 This module was previously published as:
