@@ -1,58 +1,66 @@
+# craftc
 
-# ⚒️ craftC
+`craftc` is a small command-line build tool for C projects. It compiles object
+files, creates static libraries, and links executables. It is designed to be
+called directly or from tools such as Make and [Task](https://taskfile.dev/).
 
-> A fast, minimal C build tool inspired by Taskfile & Make. Designed for speed, clarity, and cross-platform simplicity.
+It tracks source files, headers, and command-line changes so unchanged targets
+do not need to be rebuilt.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/ameershira/craftc.svg)](https://pkg.go.dev/github.com/ameershira/craftc)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/ameershira/craftc)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/ameershira/craftc/go.yml)
 ![GitHub](https://img.shields.io/github/license/ameershira/craftc)
 
----
+## What it does
 
-## 🚀 Features
+- Rebuilds objects when a source file, header, or compile command changes
+- Compiles multiple source files concurrently
+- Creates static libraries with `ar`
+- Links executables and relinks when an input library changes
+- Accepts custom compiler and linker flags
+- Provides optional verbose output
 
-- ⚡ Lightning-fast incremental builds with dependancy tracking
-- 🧠 Smart recompilation detection with reasoning
-- 🔨 C compiler integration with support for custom flags
-- 📦 Static library archiving
-- 🔗 Application linking
-- ✅ Clear verbose output option
-- 🧩 Simple CLI
-- 🧰 Cross-platform: Linux, (macOS, Windows not tested yet)
+Linux is supported. macOS and Windows have not been tested.
 
----
-
-## ⚠️ Module path change
+## Module path change
 
 This module was previously published as:
 
-    github.com/ameergituser/craftc
+```text
+github.com/ameergituser/craftc
+```
 
 New versions are published under:
 
-    github.com/ameershira/craftc
+```text
+github.com/ameershira/craftc
+```
 
----
-
-## 📦 Installation
+## Installation
 
 Install with Go:
 
 ```sh
 go install github.com/ameershira/craftc@latest
 ```
-Or clone and build manually:
+
+Or clone and build it locally:
+
 ```sh
 git clone https://github.com/ameershira/craftc
 cd craftc
 go build .
 ```
 
-## 🧩 Usage Examples
-The examples below use the verbose flag to print output to the console.
+## Usage examples
+
+These examples use `-v` to print the commands being run.
+
 ### 1. Build an object file
+
 Use the `obj` command:
+
 ```sh
 craftc obj -cc cc -cfile ./libsrc1.c -cflags "-Wall -O2" -objdir ./build/obj -v
 ```
@@ -65,8 +73,11 @@ Re-run:
 ```sh
 ✅ build/obj/libsrc1.c.o is up to date.
 ```
+
 ### 2. Build multiple object files concurrently
+
 Use the `objs` command:
+
 ```sh
 craftc objs -cc cc -cfiles "./libsrc1.c ./libsrc2.c" -cflags "-Wall" -objdir ./build/obj -v
 ```
@@ -77,8 +88,11 @@ Output:
 [compile] 🔨 /usr/bin/cc -Wall -MMD -MF build/obj/libsrc2.c.d -c ./libsrc2.c -o build/obj/libsrc2.c.o
 [compile] 🔨 /usr/bin/cc -Wall -MMD -MF build/obj/libsrc1.c.d -c ./libsrc1.c -o build/obj/libsrc1.c.o
 ```
+
 ### 3. Build a static library
+
 Use the `static-lib` command:
+
 ```sh
 craftc static-lib -cc cc -cfiles "./libsrc1.c ./libsrc2.c" -cflags "-Wall -O2" -lib-path "./build/lib.a" -objdir ./build/obj -v
 ```
@@ -96,9 +110,10 @@ Re-run:
 ✅ build/obj/libsrc1.c.o is up to date.
 ✅ 📦 ./build/lib.a is up to date.
 ```
+
 ### 4. Build an executable
-We also statically link against a library.  
-Use the `exe` command:
+This example also links a static library:
+
 ```sh
 craftc exe -cc cc -cfiles "main.c" -objdir ./build/obj -cflags "-Wall -O2 -I ./libsrc" -lib-paths "./build/lib.a" -exe-path ./app
 ```
@@ -113,13 +128,14 @@ Re-run:
 ✅ build/obj/main.c.o is up to date.
 ✅ 🚀 ./build/app is up to date.
 ```
+
 ### 5. Task integration
-Craftc's commands are designed to be composable. This makes it simple and easy to understand and integrate into other tools such as [Task](https://taskfile.dev/).
 
-The example below utlises Task to build an executable, and also build the dependancy library is required.
+Each command can be used on its own, which makes `craftc` straightforward to
+call from [Task](https://taskfile.dev/) or another task runner. This Taskfile
+builds a static library before linking the executable:
 
-Example:
-```sh
+```yaml
 version: '3'
 
 tasks:
