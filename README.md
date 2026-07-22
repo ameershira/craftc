@@ -1,4 +1,4 @@
-![craftc — Build when it matters](banner.png)
+![craftc — Build when it matters](banner.webp)
 
 # craftc
 
