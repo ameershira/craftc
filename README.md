@@ -1,3 +1,5 @@
+![craftc — Build when it matters](banner.png)
+
 # craftc
 
 `craftc` is a small command-line build tool for C projects. It compiles object
